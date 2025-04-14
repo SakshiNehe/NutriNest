@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "NutriNest",
+    "slug": "nutrinest",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "nutrinest",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nutrinest.app",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ],
+        "NSCameraUsageDescription": "This app uses the camera to scan barcodes for food tracking."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.nutrinest.app",
+      "permissions": [
+        "NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "notification": {
+      "icon": "./assets/images/adaptive-icon.png",
+      "color": "#E53935",
+      "androidMode": "default",
+      "androidCollapsedTitle": "NutriNest",
+      "iosDisplayInForeground": true
+    }
+  }
+}
