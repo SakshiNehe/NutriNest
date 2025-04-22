@@ -12,11 +12,12 @@ import {
   configureFonts,
   MD3TypescaleKey
 } from 'react-native-paper';
+import { View, StyleSheet } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { auth, isFirebaseInitialized, reinitializeFirebase } from '../config/firebaseConfig';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { View, ActivityIndicator, Text } from 'react-native';
+import NavigationBar from '../components/NavigationBar';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -145,6 +146,9 @@ const customTheme = {
       primary: '#E53935',
       secondary: '#FF8A65',
       error: '#B00020',
+      background: '#F5F5F5',
+      surface: '#FFFFFF',
+      onSurface: '#1A1A1A',
     },
     fonts: configureFonts({ config: { default: fontConfig } }),
   },
@@ -155,6 +159,9 @@ const customTheme = {
       primary: '#E53935',
       secondary: '#FF8A65',
       error: '#CF6679',
+      background: '#121212',
+      surface: '#1E1E1E',
+      onSurface: '#FFFFFF',
     },
     fonts: configureFonts({ config: { default: fontConfig } }),
   },
@@ -169,10 +176,8 @@ export default function RootLayout() {
   const [initializing, setInitializing] = useState(true);
   const router = useRouter();
   const segments = useSegments();
-  
-  // Use this ref to track if the component is mounted
   const isMounted = useRef(false);
-
+  
   // Handle user state changes with better error handling
   useEffect(() => {
     console.log("Setting up auth state listener");
@@ -272,20 +277,31 @@ export default function RootLayout() {
   }, []);
 
   if (!loaded || initializing) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#E53935" />
-        <Text style={{ marginTop: 10 }}>Loading...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (
     <PaperProvider theme={colorScheme === 'dark' ? customTheme.dark : customTheme.light}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Slot />
-        <StatusBar style="auto" />
+        <View style={styles.container}>
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+          <NavigationBar />
+          <View style={styles.content}>
+            <Slot />
+          </View>
+        </View>
       </ThemeProvider>
     </PaperProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+});
