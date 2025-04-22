@@ -2,20 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, Modal, Platform, Dimensions, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { TextInput, Button, Card, Avatar, Chip, TouchableRipple } from 'react-native-paper';
+import { TextInput, Button, Card, Avatar, Chip, TouchableRipple, Text, IconButton, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { auth } from '../../config/firebaseConfig';
 import { getUserPreferences } from '../../services/userProfileService';
 import { generateMealPlan, saveMealPlan, getUserMealPlans, getMealPlan } from '../../services/mealPlannerService';
-
+import staticMealPlans from "../../staticMealPlans.json"
+import { generateAIMealSuggestions, addMealToPlan } from '../../services/aiMealService';
 const { width } = Dimensions.get('window');
 const isSmallDevice = width < 375;
 
 export default function MealPlannerScreen() {
+  const theme = useTheme();
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [userDataModalVisible, setUserDataModalVisible] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState(null);
@@ -26,11 +30,14 @@ export default function MealPlannerScreen() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
-  const router = useRouter();
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [suggestionsModalVisible, setSuggestionsModalVisible] = useState(false);
+
   
   // Calculate total calories in the meal plan
   const totalCaloriesPlanned = mealPlan?.meals?.reduce((sum, meal) => {
-    return sum + (meal.nutrition?.nutrients?.find(n => n.name === 'Calories')?.amount || 0);
+    const calories = meal.nutrition?.nutrients?.find(n => n.name === 'Calories')?.amount;
+    return sum + (calories || 0);
   }, 0) || 0;
   
   // Fetch user preferences and meal plan on component mount
@@ -45,16 +52,12 @@ export default function MealPlannerScreen() {
         const preferences = await getUserPreferences(user.uid);
         setUserPreferences(preferences);
         
-        // Get meal plans for the selected date
+        // Get meal plans for the selected date from static JSON
         const formattedDate = selectedDate.toISOString().split('T')[0];
-        const userMealPlans = await getUserMealPlans(user.uid);
-        
-        // Find meal plan for the selected date
-        const planForDate = userMealPlans.find(plan => plan.date === formattedDate);
+        const planForDate = staticMealPlans.mealPlans.find(plan => plan.date === formattedDate);
         
         if (planForDate) {
-          const detailedPlan = await getMealPlan(planForDate.id);
-          setMealPlan(detailedPlan);
+          setMealPlan(planForDate);
         } else {
           setMealPlan(null);
         }
@@ -84,101 +87,131 @@ export default function MealPlannerScreen() {
   const handleGenerateMealPlan = async () => {
     try {
       setGenerating(true);
-      setError(''); // Clear any previous errors
+      setError('');
       
       const user = auth.currentUser;
       if (!user || !userPreferences) {
         setError('User preferences not found. Please update your profile.');
         return;
       }
-
-      console.log('Starting meal plan generation with preferences:', userPreferences);
+  
+      // Get a random meal plan from our static data
+      const randomPlanIndex = Math.floor(Math.random() * staticMealPlans.mealPlans.length);
+      const newMealPlan = { ...staticMealPlans.mealPlans[randomPlanIndex] };
       
-      // Generate new meal plan using user preferences
-      const newMealPlan = await generateMealPlan(userPreferences);
-      
-      // Add date to meal plan
+      // Update the date to match selected date
       newMealPlan.date = selectedDate.toISOString().split('T')[0];
       
-      // Save meal plan to Firestore
-      const mealPlanId = await saveMealPlan(user.uid, newMealPlan);
+      // Adjust calories to match user preferences
+      const targetCalories = userPreferences.targetCalories || 2000;
+      const currentCalories = newMealPlan.meals.reduce((sum, meal) => {
+        return sum + (meal.nutrition.nutrients.find(n => n.name === 'Calories')?.amount || 0)
+      }, 0);
       
-      // Set the generated meal plan
-      setMealPlan({ id: mealPlanId, ...newMealPlan });
-      console.log('Meal plan generated and saved successfully');
+      // Calculate adjustment factor
+      const adjustmentFactor = targetCalories / currentCalories;
+      
+      // Adjust all nutrition values
+      newMealPlan.meals = newMealPlan.meals.map(meal => {
+        const adjustedMeal = { ...meal };
+        adjustedMeal.nutrition.nutrients = adjustedMeal.nutrition.nutrients.map(nutrient => {
+          return {
+            ...nutrient,
+            amount: Math.round(nutrient.amount * adjustmentFactor)
+          };
+        });
+        return adjustedMeal;
+      });
+  
+      // In a real app, you might still want to save this to Firestore
+      // const mealPlanId = await saveMealPlan(user.uid, newMealPlan);
+      // setMealPlan({ id: mealPlanId, ...newMealPlan });
+      
+      // For demo purposes, we'll just set it directly
+      setMealPlan(newMealPlan);
       
     } catch (err) {
       console.error('Error generating meal plan:', err);
-      // More detailed error message
-      if (err.response && err.response.status === 401) {
-        setError('API authentication failed. Using sample meal plan instead.');
-        
-        // Create a simple fallback meal plan in case API fails
-        try {
-          const fallbackPlan = {
-            date: selectedDate.toISOString().split('T')[0],
-            meals: [
-              {
-                id: 1,
-                title: "Scrambled Eggs with Vegetables",
-                readyInMinutes: 15,
-                servings: 1,
-                image: "https://spoonacular.com/recipeImages/635446-312x231.jpg",
-                nutrition: {
-                  nutrients: [
-                    { name: 'Calories', amount: Math.floor((userPreferences?.targetCalories || 2000) / 3) },
-                    { name: 'Protein', amount: 20 },
-                    { name: 'Fat', amount: 15 },
-                    { name: 'Carbohydrates', amount: 10 }
-                  ]
-                }
-              },
-              {
-                id: 2,
-                title: "Grilled Chicken Salad",
-                readyInMinutes: 20,
-                servings: 1,
-                image: "https://spoonacular.com/recipeImages/649931-312x231.jpg",
-                nutrition: {
-                  nutrients: [
-                    { name: 'Calories', amount: Math.floor((userPreferences?.targetCalories || 2000) / 3) },
-                    { name: 'Protein', amount: 25 },
-                    { name: 'Fat', amount: 10 },
-                    { name: 'Carbohydrates', amount: 15 }
-                  ]
-                }
-              },
-              {
-                id: 3,
-                title: "Baked Salmon with Vegetables",
-                readyInMinutes: 25,
-                servings: 1,
-                image: "https://spoonacular.com/recipeImages/641057-312x231.jpg",
-                nutrition: {
-                  nutrients: [
-                    { name: 'Calories', amount: Math.floor((userPreferences?.targetCalories || 2000) / 3) },
-                    { name: 'Protein', amount: 22 },
-                    { name: 'Fat', amount: 18 },
-                    { name: 'Carbohydrates', amount: 12 }
-                  ]
-                }
-              }
-            ]
-          };
-          
-          const fallbackPlanId = await saveMealPlan(user.uid, fallbackPlan);
-          setMealPlan({ id: fallbackPlanId, ...fallbackPlan });
-          console.log('Fallback meal plan created and saved');
-        } catch (fallbackError) {
-          console.error('Failed to create fallback meal plan:', fallbackError);
-          setError('Failed to generate any meal plan. Please try again later.');
-        }
-      } else {
-        setError('Failed to generate meal plan. Please try again.');
-      }
+      setError('Failed to generate meal plan. Please try again.');
     } finally {
       setGenerating(false);
     }
+  };
+  
+  const loadMealPlan = async () => {
+    try {
+      const storedPlan = await AsyncStorage.getItem(`mealPlan_${selectedDate.toDateString()}`);
+      if (storedPlan) {
+        setMealPlan(JSON.parse(storedPlan));
+      }
+    } catch (error) {
+      console.error('Error loading meal plan:', error);
+    }
+  };
+
+  const handleAddMeal = async (mealType) => {
+    setSelectedMealType(mealType);
+    try {
+      const suggestions = await generateAIMealSuggestions(userPreferences, mealType);
+      setAiSuggestions(suggestions);
+      setSuggestionsModalVisible(true);
+    } catch (error) {
+      console.error('Error getting meal suggestions:', error);
+      setError('Failed to get meal suggestions. Please try again.');
+    }
+  };
+
+  const handleSelectSuggestion = async (meal) => {
+    try {
+      const updatedPlan = await addMealToPlan(meal, selectedDate.toISOString().split('T')[0]);
+      setMealPlan(updatedPlan);
+      setSuggestionsModalVisible(false);
+      setAiSuggestions([]);
+    } catch (error) {
+      console.error('Error adding meal to plan:', error);
+      setError('Failed to add meal to plan. Please try again.');
+    }
+  };
+
+  const renderMealSection = (mealType, title) => {
+    const meals = mealPlan?.meals?.filter(meal => meal.type === mealType) || [];
+    
+    return (
+      <Card style={styles.mealCard}>
+        <Card.Title
+          title={title}
+          right={(props) => (
+            <IconButton
+              {...props}
+              icon="plus"
+              onPress={() => handleAddMeal(mealType)}
+            />
+          )}
+        />
+        <Card.Content>
+          {meals.length > 0 ? (
+            meals.map((meal, index) => (
+              <TouchableRipple 
+                key={index}
+                onPress={() => handleMealSelect(meal, mealType)}
+              >
+                <View style={styles.mealItem}>
+                  <View>
+                    <Text style={styles.mealName}>{meal.name}</Text>
+                    <Text style={styles.mealMacros}>
+                      {meal.calories} cal • {meal.protein}g protein • {meal.carbs}g carbs • {meal.fat}g fat
+                    </Text>
+                  </View>
+                  <IconButton icon="chevron-right" size={24} />
+                </View>
+              </TouchableRipple>
+            ))
+          ) : (
+            <Text style={styles.emptyMealText}>No meals added yet</Text>
+          )}
+        </Card.Content>
+      </Card>
+    );
   };
   
   // If no userPreferences or still loading, show loading state
@@ -310,56 +343,70 @@ export default function MealPlannerScreen() {
                 </ThemedText>
               </ThemedView>
               
-              {/* Meal Plans */}
-              <View style={styles.mealList}>
-                {/* Display meal plan from Spoonacular */}
-                {mealPlan.meals.map((meal, index) => (
-                  <ThemedView key={meal.id} style={styles.mealSection}>
-                    <ThemedText type="subtitle" style={styles.mealSectionTitle}>
-                      {index === 0 ? 'Breakfast' : index === 1 ? 'Lunch' : 'Dinner'}
-                    </ThemedText>
-                    <TouchableRipple 
-                      onPress={() => handleMealSelect(meal, index === 0 ? 'breakfast' : index === 1 ? 'lunch' : 'dinner')}
-                    >
-                      <View style={styles.mealCard}>
-                        {meal.image ? (
-                          <Avatar.Image 
-                            size={60} 
-                            source={{ uri: meal.image || `https://spoonacular.com/recipeImages/${meal.id}-240x150.jpg` }} 
-                            style={styles.mealImage} 
-                          />
-                        ) : (
-                          <ThemedText style={styles.mealEmoji}>🍽️</ThemedText>
-                        )}
-                        <ThemedView style={styles.mealCardContent}>
-                          <ThemedText type="defaultSemiBold">{meal.title}</ThemedText>
-                          <ThemedText style={styles.smallText}>
-                            {Math.round(meal.nutrition?.nutrients?.find(n => n.name === 'Calories')?.amount || 0)} cal • 
-                            {Math.round(meal.nutrition?.nutrients?.find(n => n.name === 'Protein')?.amount || 0)}g protein
-                          </ThemedText>
-                          <ThemedView style={styles.mealTags}>
-                            {meal.readyInMinutes && (
-                              <Chip style={styles.tag} textStyle={styles.tagText}>
-                                {meal.readyInMinutes} min
-                              </Chip>
-                            )}
-                            {meal.price && (
-                              <Chip style={styles.tag} textStyle={styles.tagText}>
-                                ${(typeof meal.price === 'number' ? (meal.price > 10 ? (meal.price / 100).toFixed(2) : meal.price.toFixed(2)) : '0.00')}
-                              </Chip>
-                            )}
-                          </ThemedView>
-                        </ThemedView>
-                        <Ionicons name="chevron-forward" size={24} color="#E53935" />
-                      </View>
-                    </TouchableRipple>
-                  </ThemedView>
-                ))}
-              </View>
+              {/* Meal Sections */}
+              {renderMealSection('breakfast', 'Breakfast')}
+              {renderMealSection('lunch', 'Lunch')}
+              {renderMealSection('dinner', 'Dinner')}
+              {renderMealSection('snacks', 'Snacks')}
             </>
           )}
         </ThemedView>
       </ScrollView>
+
+      {/* AI Suggestions Modal */}
+      <Modal
+        visible={suggestionsModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSuggestionsModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>AI Suggested Meals</Text>
+              <IconButton
+                icon="close"
+                size={24}
+                onPress={() => setSuggestionsModalVisible(false)}
+              />
+            </View>
+
+            <ScrollView>
+              {aiSuggestions.map((suggestion, index) => (
+                <Card key={index} style={styles.suggestionCard}>
+                  <Card.Title title={suggestion.name} />
+                  <Card.Content>
+                    <View style={styles.macrosContainer}>
+                      <Text style={styles.macroText}>Calories: {suggestion.calories}</Text>
+                      <Text style={styles.macroText}>Protein: {suggestion.protein}g</Text>
+                      <Text style={styles.macroText}>Carbs: {suggestion.carbs}g</Text>
+                      <Text style={styles.macroText}>Fat: {suggestion.fat}g</Text>
+                    </View>
+
+                    <Text style={styles.sectionTitle}>Ingredients:</Text>
+                    {suggestion.ingredients.map((ingredient, i) => (
+                      <Text key={i} style={styles.listItem}>• {ingredient}</Text>
+                    ))}
+
+                    <Text style={styles.sectionTitle}>Instructions:</Text>
+                    {suggestion.instructions.map((instruction, i) => (
+                      <Text key={i} style={styles.listItem}>{i + 1}. {instruction}</Text>
+                    ))}
+
+                    <Button
+                      mode="contained"
+                      onPress={() => handleSelectSuggestion(suggestion)}
+                      style={styles.addButton}
+                    >
+                      Add to Meal Plan
+                    </Button>
+                  </Card.Content>
+                </Card>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Meal Details Modal */}
       <Modal
@@ -547,71 +594,29 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
-  mealList: {
-    flex: 1,
-  },
-  mealSection: {
-    marginBottom: 24,
-  },
-  mealSectionTitle: {
-    marginBottom: 8,
-  },
   mealCard: {
+    marginBottom: 16,
+    elevation: 2,
+  },
+  mealItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  mealEmoji: {
-    fontSize: 40,
-    marginRight: 12,
-  },
-  mealImage: {
-    marginRight: 12,
-  },
-  mealCardContent: {
-    flex: 1,
-  },
-  mealTags: {
-    flexDirection: 'row',
-    marginTop: 4,
-  },
-  tag: {
-    backgroundColor: '#EEEEEE',
-    marginRight: 6,
-    height: 24,
-  },
-  tagText: {
-    fontSize: 10,
-  },
-  noMealPlanContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  noMealPlanText: {
-    textAlign: 'center',
+  mealName: {
     fontSize: 16,
-    marginBottom: 20,
   },
-  errorText: {
-    color: '#E53935',
-    marginTop: 10,
+  mealCalories: {
+    fontSize: 14,
+    color: '#666',
+  },
+  emptyMealText: {
     textAlign: 'center',
+    color: '#666',
+    paddingVertical: 16,
   },
   modalContainer: {
     flex: 1,
@@ -673,5 +678,41 @@ const styles = StyleSheet.create({
   viewRecipeButton: {
     backgroundColor: '#E53935',
     marginTop: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  suggestionCard: {
+    marginBottom: 16,
+    elevation: 2,
+  },
+  macrosContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  macroText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  listItem: {
+    fontSize: 14,
+    marginBottom: 4,
+    paddingLeft: 8,
+  },
+  addButton: {
+    marginTop: 16,
+    backgroundColor: '#E53935',
+  },
+  mealMacros: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
 }); 

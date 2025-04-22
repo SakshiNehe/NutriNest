@@ -18,6 +18,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { auth, isFirebaseInitialized, reinitializeFirebase } from '../config/firebaseConfig';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import NavigationBar from '../components/NavigationBar';
+import { initializeNotifications } from '../services/notificationService';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -169,62 +170,41 @@ const customTheme = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-  const [user, setUser] = useState<User | null>(null);
-  const [initializing, setInitializing] = useState(true);
-  const router = useRouter();
   const segments = useSegments();
-  const isMounted = useRef(false);
+  const router = useRouter();
+  const isMounted = useRef(true);
   
-  // Handle user state changes with better error handling
+  // Initialize Firebase and notifications
   useEffect(() => {
-    console.log("Setting up auth state listener");
-    
-    try {
-      // Ensure Firebase is initialized
-      if (!isFirebaseInitialized()) {
-        console.log("Firebase not initialized in RootLayout, reinitializing...");
-        reinitializeFirebase();
-      }
-      
-      // Check if auth is properly initialized
-      if (!auth) {
-        console.error("Auth not initialized - critical error");
-        setInitializing(false);
-        return () => {};
-      }
-      
-      console.log("Setting up auth state change listener...");
-      const unsubscribe = onAuthStateChanged(
-        auth, 
-        (firebaseUser) => {
-          console.log("Auth state changed:", firebaseUser ? "User logged in" : "No user");
-          setUser(firebaseUser);
-          
-          if (initializing) {
-            console.log("Initialization complete");
-            setInitializing(false);
-          }
-        }, 
-        (error) => {
-          console.error("Auth state change error:", error);
-          // Don't get stuck in initializing state on error
-          if (initializing) setInitializing(false);
+    const initializeApp = async () => {
+      try {
+        if (!isFirebaseInitialized()) {
+          await reinitializeFirebase();
         }
-      );
+        await initializeNotifications();
+      } catch (error) {
+        console.error('Error initializing app:', error);
+      } finally {
+        setInitializing(false);
+      }
+    };
 
-      return () => {
-        console.log("Cleaning up auth state listener");
-        unsubscribe();
-      };
-    } catch (error) {
-      console.error("Fatal auth setup error:", error);
-      // Don't get stuck in initializing state on error
-      if (initializing) setInitializing(false);
-      return () => {};
-    }
+    initializeApp();
+  }, []);
+
+  // Handle auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setInitializing(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Handle routing based on authentication state

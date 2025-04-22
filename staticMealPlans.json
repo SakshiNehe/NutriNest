@@ -1,0 +1,514 @@
+{
+    "mealPlans": [
+      {
+        "id": "plan1",
+        "date": "2023-11-01",
+        "meals": [
+          {
+            "id": 1,
+            "title": "Masala Dosa with Coconut Chutney",
+            "readyInMinutes": 45,
+            "servings": 2,
+            "image": "https://spoonacular.com/recipeImages/masala-dosa-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 320 },
+                { "name": "Protein", "amount": 8 },
+                { "name": "Fat", "amount": 12 },
+                { "name": "Carbohydrates", "amount": 48 }
+              ]
+            }
+          },
+          {
+            "id": 2,
+            "title": "Chole Bhature",
+            "readyInMinutes": 60,
+            "servings": 3,
+            "image": "https://spoonacular.com/recipeImages/chole-bhature-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 550 },
+                { "name": "Protein", "amount": 18 },
+                { "name": "Fat", "amount": 24 },
+                { "name": "Carbohydrates", "amount": 70 }
+              ]
+            }
+          },
+          {
+            "id": 3,
+            "title": "Butter Chicken with Naan",
+            "readyInMinutes": 50,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/butter-chicken-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 620 },
+                { "name": "Protein", "amount": 35 },
+                { "name": "Fat", "amount": 32 },
+                { "name": "Carbohydrates", "amount": 52 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "plan2",
+        "date": "2023-11-02",
+        "meals": [
+          {
+            "id": 4,
+            "title": "Poha with Chai",
+            "readyInMinutes": 25,
+            "servings": 2,
+            "image": "https://spoonacular.com/recipeImages/poha-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 280 },
+                { "name": "Protein", "amount": 7 },
+                { "name": "Fat", "amount": 10 },
+                { "name": "Carbohydrates", "amount": 42 }
+              ]
+            }
+          },
+          {
+            "id": 5,
+            "title": "Rajma Chawal",
+            "readyInMinutes": 45,
+            "servings": 3,
+            "image": "https://spoonacular.com/recipeImages/rajma-chawal-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 450 },
+                { "name": "Protein", "amount": 18 },
+                { "name": "Fat", "amount": 8 },
+                { "name": "Carbohydrates", "amount": 78 }
+              ]
+            }
+          },
+          {
+            "id": 6,
+            "title": "Palak Paneer with Roti",
+            "readyInMinutes": 40,
+            "servings": 3,
+            "image": "https://spoonacular.com/recipeImages/palak-paneer-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 420 },
+                { "name": "Protein", "amount": 22 },
+                { "name": "Fat", "amount": 25 },
+                { "name": "Carbohydrates", "amount": 35 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "plan3",
+        "date": "2023-11-03",
+        "meals": [
+          {
+            "id": 7,
+            "title": "Idli Sambhar",
+            "readyInMinutes": 50,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/idli-sambhar-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 250 },
+                { "name": "Protein", "amount": 9 },
+                { "name": "Fat", "amount": 5 },
+                { "name": "Carbohydrates", "amount": 45 }
+              ]
+            }
+          },
+          {
+            "id": 8,
+            "title": "Aloo Paratha with Curd",
+            "readyInMinutes": 35,
+            "servings": 2,
+            "image": "https://spoonacular.com/recipeImages/aloo-paratha-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 380 },
+                { "name": "Protein", "amount": 12 },
+                { "name": "Fat", "amount": 15 },
+                { "name": "Carbohydrates", "amount": 55 }
+              ]
+            }
+          },
+          {
+            "id": 9,
+            "title": "Biryani with Raita",
+            "readyInMinutes": 70,
+            "servings": 5,
+            "image": "https://spoonacular.com/recipeImages/biryani-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 550 },
+                { "name": "Protein", "amount": 28 },
+                { "name": "Fat", "amount": 22 },
+                { "name": "Carbohydrates", "amount": 65 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "plan4",
+        "date": "2023-11-04",
+        "meals": [
+          {
+            "id": 10,
+            "title": "Upma with Coconut Chutney",
+            "readyInMinutes": 30,
+            "servings": 3,
+            "image": "https://spoonacular.com/recipeImages/upma-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 290 },
+                { "name": "Protein", "amount": 8 },
+                { "name": "Fat", "amount": 9 },
+                { "name": "Carbohydrates", "amount": 48 }
+              ]
+            }
+          },
+          {
+            "id": 11,
+            "title": "Pav Bhaji",
+            "readyInMinutes": 45,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/pav-bhaji-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 410 },
+                { "name": "Protein", "amount": 12 },
+                { "name": "Fat", "amount": 18 },
+                { "name": "Carbohydrates", "amount": 54 }
+              ]
+            }
+          },
+          {
+            "id": 12,
+            "title": "Dal Makhani with Jeera Rice",
+            "readyInMinutes": 55,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/dal-makhani-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 480 },
+                { "name": "Protein", "amount": 20 },
+                { "name": "Fat", "amount": 15 },
+                { "name": "Carbohydrates", "amount": 70 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "plan5",
+        "date": "2023-11-05",
+        "meals": [
+          {
+            "id": 13,
+            "title": "Aloo Puri",
+            "readyInMinutes": 40,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/aloo-puri-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 420 },
+                { "name": "Protein", "amount": 9 },
+                { "name": "Fat", "amount": 20 },
+                { "name": "Carbohydrates", "amount": 55 }
+              ]
+            }
+          },
+          {
+            "id": 14,
+            "title": "Samosa with Mint Chutney",
+            "readyInMinutes": 50,
+            "servings": 6,
+            "image": "https://spoonacular.com/recipeImages/samosa-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 320 },
+                { "name": "Protein", "amount": 6 },
+                { "name": "Fat", "amount": 18 },
+                { "name": "Carbohydrates", "amount": 38 }
+              ]
+            }
+          },
+          {
+            "id": 15,
+            "title": "Malai Kofta with Garlic Naan",
+            "readyInMinutes": 60,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/malai-kofta-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 580 },
+                { "name": "Protein", "amount": 18 },
+                { "name": "Fat", "amount": 30 },
+                { "name": "Carbohydrates", "amount": 60 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "plan6",
+        "date": "2023-11-06",
+        "meals": [
+          {
+            "id": 16,
+            "title": "Rava Dosa with Sambar",
+            "readyInMinutes": 35,
+            "servings": 3,
+            "image": "https://spoonacular.com/recipeImages/rava-dosa-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 310 },
+                { "name": "Protein", "amount": 10 },
+                { "name": "Fat", "amount": 8 },
+                { "name": "Carbohydrates", "amount": 52 }
+              ]
+            }
+          },
+          {
+            "id": 17,
+            "title": "Vada Pav",
+            "readyInMinutes": 45,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/vada-pav-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 380 },
+                { "name": "Protein", "amount": 9 },
+                { "name": "Fat", "amount": 15 },
+                { "name": "Carbohydrates", "amount": 53 }
+              ]
+            }
+          },
+          {
+            "id": 18,
+            "title": "Paneer Tikka Masala with Pulao",
+            "readyInMinutes": 55,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/paneer-tikka-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 520 },
+                { "name": "Protein", "amount": 25 },
+                { "name": "Fat", "amount": 26 },
+                { "name": "Carbohydrates", "amount": 50 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "plan7",
+        "date": "2023-11-07",
+        "meals": [
+          {
+            "id": 19,
+            "title": "Misal Pav",
+            "readyInMinutes": 40,
+            "servings": 3,
+            "image": "https://spoonacular.com/recipeImages/misal-pav-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 380 },
+                { "name": "Protein", "amount": 16 },
+                { "name": "Fat", "amount": 12 },
+                { "name": "Carbohydrates", "amount": 56 }
+              ]
+            }
+          },
+          {
+            "id": 20,
+            "title": "Kathi Roll",
+            "readyInMinutes": 35,
+            "servings": 2,
+            "image": "https://spoonacular.com/recipeImages/kathi-roll-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 420 },
+                { "name": "Protein", "amount": 18 },
+                { "name": "Fat", "amount": 22 },
+                { "name": "Carbohydrates", "amount": 40 }
+              ]
+            }
+          },
+          {
+            "id": 21,
+            "title": "Chole Kulche",
+            "readyInMinutes": 60,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/chole-kulche-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 490 },
+                { "name": "Protein", "amount": 18 },
+                { "name": "Fat", "amount": 16 },
+                { "name": "Carbohydrates", "amount": 72 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "plan8",
+        "date": "2023-11-08",
+        "meals": [
+          {
+            "id": 22,
+            "title": "Medu Vada with Coconut Chutney",
+            "readyInMinutes": 45,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/medu-vada-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 290 },
+                { "name": "Protein", "amount": 10 },
+                { "name": "Fat", "amount": 16 },
+                { "name": "Carbohydrates", "amount": 30 }
+              ]
+            }
+          },
+          {
+            "id": 23,
+            "title": "Thali (Mix of Sabzi, Dal, Rice and Roti)",
+            "readyInMinutes": 70,
+            "servings": 2,
+            "image": "https://spoonacular.com/recipeImages/thali-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 650 },
+                { "name": "Protein", "amount": 22 },
+                { "name": "Fat", "amount": 20 },
+                { "name": "Carbohydrates", "amount": 98 }
+              ]
+            }
+          },
+          {
+            "id": 24,
+            "title": "Kadai Chicken with Butter Naan",
+            "readyInMinutes": 55,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/kadai-chicken-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 580 },
+                { "name": "Protein", "amount": 32 },
+                { "name": "Fat", "amount": 28 },
+                { "name": "Carbohydrates", "amount": 55 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "plan9",
+        "date": "2023-11-09",
+        "meals": [
+          {
+            "id": 25,
+            "title": "Uttapam with Sambar",
+            "readyInMinutes": 40,
+            "servings": 3,
+            "image": "https://spoonacular.com/recipeImages/uttapam-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 330 },
+                { "name": "Protein", "amount": 10 },
+                { "name": "Fat", "amount": 7 },
+                { "name": "Carbohydrates", "amount": 58 }
+              ]
+            }
+          },
+          {
+            "id": 26,
+            "title": "Pani Puri",
+            "readyInMinutes": 50,
+            "servings": 6,
+            "image": "https://spoonacular.com/recipeImages/pani-puri-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 310 },
+                { "name": "Protein", "amount": 7 },
+                { "name": "Fat", "amount": 12 },
+                { "name": "Carbohydrates", "amount": 48 }
+              ]
+            }
+          },
+          {
+            "id": 27,
+            "title": "Rogan Josh with Kashmiri Pulao",
+            "readyInMinutes": 70,
+            "servings": 5,
+            "image": "https://spoonacular.com/recipeImages/rogan-josh-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 620 },
+                { "name": "Protein", "amount": 35 },
+                { "name": "Fat", "amount": 30 },
+                { "name": "Carbohydrates", "amount": 60 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "plan10",
+        "date": "2023-11-10",
+        "meals": [
+          {
+            "id": 28,
+            "title": "Appam with Stew",
+            "readyInMinutes": 55,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/appam-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 390 },
+                { "name": "Protein", "amount": 12 },
+                { "name": "Fat", "amount": 15 },
+                { "name": "Carbohydrates", "amount": 55 }
+              ]
+            }
+          },
+          {
+            "id": 29,
+            "title": "Bhel Puri",
+            "readyInMinutes": 25,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/bhel-puri-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 280 },
+                { "name": "Protein", "amount": 8 },
+                { "name": "Fat", "amount": 10 },
+                { "name": "Carbohydrates", "amount": 45 }
+              ]
+            }
+          },
+          {
+            "id": 30,
+            "title": "Chana Masala with Lachha Paratha",
+            "readyInMinutes": 55,
+            "servings": 4,
+            "image": "https://spoonacular.com/recipeImages/chana-masala-312x231.jpg",
+            "nutrition": {
+              "nutrients": [
+                { "name": "Calories", "amount": 480 },
+                { "name": "Protein", "amount": 19 },
+                { "name": "Fat", "amount": 18 },
+                { "name": "Carbohydrates", "amount": 65 }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
