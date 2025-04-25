@@ -17,7 +17,6 @@ import { View, StyleSheet } from 'react-native';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { auth, isFirebaseInitialized, reinitializeFirebase } from '../config/firebaseConfig';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import NavigationBar from '../components/NavigationBar';
 import { initializeNotifications } from '../services/notificationService';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -265,7 +264,6 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <View style={styles.container}>
           <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          <NavigationBar />
           <View style={styles.content}>
             <Slot />
           </View>

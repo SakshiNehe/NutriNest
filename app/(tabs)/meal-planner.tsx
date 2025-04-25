@@ -12,6 +12,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { auth } from '../../config/firebaseConfig';
 import { getUserPreferences, getUserProfile } from '../../services/userProfileService';
 import { geminiService, type MealItem, type MealPlanResponse } from '../../services/geminiService';
+import { trackMealIntake } from '../../services/aiMealService';
 
 const { width } = Dimensions.get('window');
 const isSmallDevice = width < 375;
@@ -40,6 +41,7 @@ export default function MealPlannerScreen() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<MealItem | null>(null);
   const [mealDetailsModalVisible, setMealDetailsModalVisible] = useState(false);
+  const [mealConsumed, setMealConsumed] = useState(false);
 
   // Fetch user preferences and meal plan on component mount
   useEffect(() => {
@@ -88,7 +90,25 @@ export default function MealPlannerScreen() {
 
   const handleMealSelect = (meal: MealItem) => {
     setSelectedMeal(meal);
+    setMealConsumed(false);
     setMealDetailsModalVisible(true);
+  };
+
+  const handleMealDone = async () => {
+    if (!selectedMeal) return;
+    
+    try {
+      // Mark the meal as consumed
+      await trackMealIntake(selectedMeal, selectedDate.toISOString().split('T')[0]);
+      setMealConsumed(true);
+      
+      // You can optionally close the modal after a short delay
+      setTimeout(() => {
+        setMealDetailsModalVisible(false);
+      }, 1500);
+    } catch (error) {
+      console.error('Error marking meal as done:', error);
+    }
   };
 
   const handleGenerateMealPlan = async () => {
@@ -353,6 +373,15 @@ export default function MealPlannerScreen() {
                       />
                     ))}
                   </List.Section>
+                  
+                  <Button
+                    mode="contained"
+                    onPress={handleMealDone}
+                    style={styles.doneButton}
+                    disabled={mealConsumed}
+                  >
+                    {mealConsumed ? "Meal Recorded ✓" : "Mark as Done"}
+                  </Button>
                 </ScrollView>
               )}
             </View>
@@ -487,4 +516,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  doneButton: {
+    marginVertical: 24,
+    paddingVertical: 8,
+    backgroundColor: '#4CAF50',
+  }
 }); 

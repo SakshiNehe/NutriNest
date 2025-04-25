@@ -7,7 +7,8 @@ import {
   ActivityIndicator, 
   Image, 
   KeyboardAvoidingView, 
-  Platform 
+  Platform,
+  Dimensions 
 } from 'react-native';
 import { Text, Card, Button, Avatar, IconButton, Divider, Switch, Dialog, Portal } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,8 +18,7 @@ import { signOut } from 'firebase/auth';
 import { getUserPreferences, getUserProfile } from '../../services/userProfileService';
 import { requestNotificationPermissions, scheduleMealReminder, scheduleGroceryReminder } from '../../services/notificationService';
 import { LineChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
-import { DocumentData } from 'firebase/firestore';
+import { getWeeklyNutritionData } from '../../services/aiMealService';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -43,7 +43,7 @@ interface UserPreferences {
   mealTypes?: string[];
 }
 
-export default function ProfileScreen() {
+export default function HomeScreen() {
   const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -54,21 +54,20 @@ export default function ProfileScreen() {
   const [dinnerReminderTime, setDinnerReminderTime] = useState<string>('19:00');
   const [remindersEnabled, setRemindersEnabled] = useState<boolean>(false);
   const [groceryReminderEnabled, setGroceryReminderEnabled] = useState<boolean>(false);
-  const router = useRouter();
-
-  // Mock data for the nutrition chart
-  const nutritionData = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  const [weeklyNutritionData, setWeeklyNutritionData] = useState({
+    labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     datasets: [
       {
-        data: [2100, 1950, 2200, 2000, 2300, 1800, 2050],
+        data: [0, 0, 0, 0, 0, 0, 0],
         color: (opacity = 1) => `rgba(229, 57, 53, ${opacity})`,
         strokeWidth: 2
       }
     ]
-  };
+  });
+  const [todayCalories, setTodayCalories] = useState(0);
+  const router = useRouter();
 
-  // Fetch user preferences
+  // Fetch user preferences and nutrition data
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -106,6 +105,10 @@ export default function ProfileScreen() {
         } else {
           console.log("No user profile found, you may need to set up your profile");
         }
+        
+        // Load weekly nutrition data
+        await loadWeeklyNutritionData();
+        
       } catch (err) {
         console.error('Error fetching user data:', err);
         setError('Failed to load your profile. Please try again.');
@@ -116,6 +119,35 @@ export default function ProfileScreen() {
     
     fetchUserData();
   }, []);
+
+  const loadWeeklyNutritionData = async () => {
+    try {
+      // Get weekly nutrition data from AsyncStorage
+      const weeklyData = await getWeeklyNutritionData();
+      
+      if (weeklyData) {
+        // Create chart data format
+        const chartData = {
+          labels: weeklyData.labels,
+          datasets: [
+            {
+              data: weeklyData.data,
+              color: (opacity = 1) => `rgba(229, 57, 53, ${opacity})`,
+              strokeWidth: 2
+            }
+          ]
+        };
+        
+        setWeeklyNutritionData(chartData);
+        
+        // Get today's calories (based on day of week)
+        const today = new Date().getDay(); // 0 = Sunday, 6 = Saturday
+        setTodayCalories(weeklyData.data[today] || 0);
+      }
+    } catch (error) {
+      console.error('Error loading weekly nutrition data:', error);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -160,205 +192,219 @@ export default function ProfileScreen() {
     return (
       <View style={[styles.container, styles.centeredContent]}>
         <ActivityIndicator size="large" color="#E53935" />
-        <Text style={{ marginTop: 20 }}>Loading your profile...</Text>
+        <Text style={{ marginTop: 20 }}>Loading your dashboard...</Text>
       </View>
     );
   }
 
+  // Calculate remaining calories for today
+  const targetCalories = userPreferences?.targetCalories || 2000;
+  const remainingCalories = targetCalories - todayCalories;
+  const caloriePercentage = Math.min(100, Math.round((todayCalories / targetCalories) * 100));
+
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardAvoidView}
+    <SafeAreaView style={styles.safeContainer} edges={['right', 'left', 'bottom']}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
       >
-        <ScrollView 
-          style={styles.container}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={true}
-        >
-          {/* Profile Header */}
-          <View style={styles.profileHeader}>
-            <Avatar.Icon 
-              size={80} 
-              icon="account" 
-              style={styles.profileAvatar} 
-              color="#fff" 
-            />
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{userProfile?.displayName || auth.currentUser?.displayName || 'User'}</Text>
-              <Text style={styles.profileEmail}>{auth.currentUser?.email}</Text>
-              <Button 
-                mode="outlined" 
-                onPress={() => router.push('/profile-setup')}
-                style={styles.editButton}
-              >
-                Edit Profile
-              </Button>
-            </View>
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <View>
+            <Text style={styles.welcomeText}>Welcome back,</Text>
+            <Text style={styles.userName}>{userProfile?.displayName || auth.currentUser?.displayName || 'User'}</Text>
           </View>
+          <Avatar.Text 
+            size={50} 
+            label={(userProfile?.displayName?.[0] || auth.currentUser?.displayName?.[0] || 'U').toUpperCase()} 
+            style={styles.avatar} 
+          />
+        </View>
 
-          {/* Personal Stats Card */}
-          {userProfile && (userProfile.height || userProfile.weight || userProfile.age) && (
-            <Card style={styles.card}>
-              <Card.Title 
-                title="Personal Stats" 
-                left={(props) => <Avatar.Icon {...props} icon="human" style={styles.cardIcon} color="#fff" />}
-              />
-              <Card.Content>
-                <View style={styles.statRowContainer}>
-                  {userProfile.height ? (
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{userProfile.height}</Text>
-                      <Text style={styles.statLabel}>Height (cm)</Text>
-                    </View>
-                  ) : null}
-                  
-                  {userProfile.weight ? (
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{userProfile.weight}</Text>
-                      <Text style={styles.statLabel}>Weight (kg)</Text>
-                    </View>
-                  ) : null}
-                  
-                  {userProfile.age ? (
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{userProfile.age}</Text>
-                      <Text style={styles.statLabel}>Age</Text>
-                    </View>
-                  ) : null}
-                </View>
-              </Card.Content>
-            </Card>
-          )}
-
-          {/* Nutrition Goals Card */}
-          <Card style={styles.card}>
-            <Card.Title 
-              title="Nutrition Goals" 
-              left={(props) => <Avatar.Icon {...props} icon="food-apple" style={styles.cardIcon} color="#fff" />}
-            />
-            <Card.Content>
-              <View style={styles.goalRow}>
-                <Text style={styles.goalLabel}>Daily Calorie Target:</Text>
-                <Text style={styles.goalValue}>{userPreferences?.targetCalories || 2000} cal</Text>
-              </View>
-              <View style={styles.goalRow}>
-                <Text style={styles.goalLabel}>Weight Goal:</Text>
-                <Text style={styles.goalValue}>
-                  {userPreferences?.fitnessGoal === 'lose' 
-                    ? 'Lose Weight' 
-                    : userPreferences?.fitnessGoal === 'gain'
-                      ? 'Gain Muscle'
-                      : 'Maintain Weight'
-                  }
+        {/* Today's Summary Card */}
+        <Card style={styles.card}>
+          <Card.Title 
+            title="Today's Summary" 
+            subtitle="Your nutrition and activity" 
+            left={(props) => <Avatar.Icon {...props} icon="calendar-today" style={styles.cardIcon} color="#fff" />}
+          />
+          <Card.Content>
+            <View style={styles.summaryStats}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>
+                  {targetCalories}
                 </Text>
+                <Text style={styles.statLabel}>Calorie Goal</Text>
               </View>
-              <View style={styles.goalRow}>
-                <Text style={styles.goalLabel}>Dietary Preferences:</Text>
-                <View style={styles.chipContainer}>
-                  {userPreferences?.dietaryPreferences?.map((pref) => (
-                    <Text key={pref} style={styles.chip}>{pref}</Text>
-                  ))}
-                  {(!userPreferences?.dietaryPreferences || userPreferences.dietaryPreferences.length === 0) && (
-                    <Text style={styles.chip}>None</Text>
-                  )}
-                </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{todayCalories}</Text>
+                <Text style={styles.statLabel}>Consumed</Text>
               </View>
-            </Card.Content>
-          </Card>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{remainingCalories}</Text>
+                <Text style={styles.statLabel}>Remaining</Text>
+              </View>
+            </View>
+            
+            <View style={styles.progressSection}>
+              <View style={styles.progressBar}>
+                <View 
+                  style={[styles.progressFill, { width: `${caloriePercentage}%` }]} 
+                />
+              </View>
+              <Text style={styles.progressText}>{caloriePercentage}% of daily goal</Text>
+            </View>
+          </Card.Content>
+          <Card.Actions>
+            <Button mode="text" onPress={() => router.push('/(tabs)/meal-planner')}>
+              View Meal Plan
+            </Button>
+          </Card.Actions>
+        </Card>
 
-          {/* Weekly Nutrition Chart */}
-          <Card style={styles.card}>
-            <Card.Title 
-              title="Weekly Calorie Intake" 
-              left={(props) => <Avatar.Icon {...props} icon="chart-line" style={styles.cardIcon} color="#fff" />}
+        {/* Weekly Stats Card */}
+        <Card style={styles.card}>
+          <Card.Title 
+            title="Weekly Nutrition" 
+            subtitle="Calorie intake over time" 
+            left={(props) => <Avatar.Icon {...props} icon="chart-line" style={styles.cardIcon} color="#fff" />}
+          />
+          <Card.Content>
+            <LineChart
+              data={weeklyNutritionData}
+              width={screenWidth - 60}
+              height={180}
+              chartConfig={{
+                backgroundColor: '#FFFFFF',
+                backgroundGradientFrom: '#FFFFFF',
+                backgroundGradientTo: '#FFFFFF',
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(229, 57, 53, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                style: {
+                  borderRadius: 16,
+                },
+                propsForDots: {
+                  r: '6',
+                  strokeWidth: '2',
+                  stroke: '#E53935',
+                },
+              }}
+              bezier
+              style={styles.chart}
             />
-            <Card.Content>
-              <LineChart
-                data={nutritionData}
-                width={screenWidth - 50}
-                height={220}
-                chartConfig={{
-                  backgroundColor: '#ffffff',
-                  backgroundGradientFrom: '#ffffff',
-                  backgroundGradientTo: '#ffffff',
-                  decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                  style: {
-                    borderRadius: 16
-                  },
-                  propsForDots: {
-                    r: '6',
-                    strokeWidth: '2',
-                    stroke: '#E53935'
-                  }
-                }}
-                bezier
-                style={{
-                  marginVertical: 8,
-                  borderRadius: 16
-                }}
-              />
-            </Card.Content>
-          </Card>
+          </Card.Content>
+        </Card>
 
-          {/* Action Buttons */}
-          <View style={styles.buttonContainer}>
-            <Button 
-              mode="contained" 
-              icon="bell-outline" 
-              onPress={() => setShowReminderDialog(true)}
-              style={styles.actionButton}
-            >
-              Set Reminders
-            </Button>
-            
-            <Button 
-              mode="outlined" 
-              icon="logout" 
-              onPress={handleSignOut}
-              style={styles.signOutButton}
-            >
-              Sign Out
-            </Button>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {/* Quick Actions Card */}
+        <Card style={styles.card}>
+          <Card.Title 
+            title="Quick Actions" 
+            left={(props) => <Avatar.Icon {...props} icon="lightning-bolt" style={styles.cardIcon} color="#fff" />}
+          />
+          <Card.Content>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => router.push('/(tabs)/meal-planner')}
+              >
+                <Avatar.Icon 
+                  size={50} 
+                  icon="food-fork-drink" 
+                  style={styles.actionIcon} 
+                  color="#fff" 
+                />
+                <Text style={styles.actionText}>Generate Meal Plan</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => router.push('/(tabs)/recipes')}
+              >
+                <Avatar.Icon 
+                  size={50} 
+                  icon="book-open-variant" 
+                  style={[styles.actionIcon, { backgroundColor: '#4CAF50' }]} 
+                  color="#fff" 
+                />
+                <Text style={styles.actionText}>Browse Recipes</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => setShowReminderDialog(true)}
+              >
+                <Avatar.Icon 
+                  size={50} 
+                  icon="bell" 
+                  style={[styles.actionIcon, { backgroundColor: '#FF9800' }]} 
+                  color="#fff" 
+                />
+                <Text style={styles.actionText}>Set Reminders</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => router.push('/profile-setup')}
+              >
+                <Avatar.Icon 
+                  size={50} 
+                  icon="cog" 
+                  style={[styles.actionIcon, { backgroundColor: '#2196F3' }]} 
+                  color="#fff" 
+                />
+                <Text style={styles.actionText}>Settings</Text>
+              </TouchableOpacity>
+            </View>
+          </Card.Content>
+        </Card>
 
-      {/* Reminder Dialog */}
-      <Portal>
-        <Dialog visible={showReminderDialog} onDismiss={() => setShowReminderDialog(false)}>
-          <Dialog.Title>Set Meal Reminders</Dialog.Title>
-          <Dialog.Content>
-            <View style={styles.reminderSwitch}>
-              <Text>Enable Meal Reminders</Text>
-              <Switch 
-                value={remindersEnabled} 
-                onValueChange={setRemindersEnabled} 
-                color="#E53935"
-              />
-            </View>
-            
-            {/* Add time picker UI for meal reminders here */}
-            
-            <Divider style={styles.divider} />
-            
-            <View style={styles.reminderSwitch}>
-              <Text>Weekly Grocery Reminder</Text>
-              <Switch 
-                value={groceryReminderEnabled} 
-                onValueChange={setGroceryReminderEnabled} 
-                color="#E53935"
-              />
-            </View>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowReminderDialog(false)}>Cancel</Button>
-            <Button onPress={handleSetupReminders}>Save</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+        {/* Reminder Dialog */}
+        <Portal>
+          <Dialog visible={showReminderDialog} onDismiss={() => setShowReminderDialog(false)}>
+            <Dialog.Title>Meal Reminders</Dialog.Title>
+            <Dialog.Content>
+              <View style={styles.reminderSetting}>
+                <Text>Enable Meal Reminders</Text>
+                <Switch 
+                  value={remindersEnabled} 
+                  onValueChange={setRemindersEnabled} 
+                  color="#E53935"
+                />
+              </View>
+              
+              <View style={styles.reminderSetting}>
+                <Text>Grocery Shopping Reminder</Text>
+                <Switch 
+                  value={groceryReminderEnabled} 
+                  onValueChange={setGroceryReminderEnabled} 
+                  color="#E53935"
+                />
+              </View>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowReminderDialog(false)}>Cancel</Button>
+              <Button onPress={() => handleSetupReminders()}>Save</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
+        
+        {/* Sign Out Button */}
+        <Button 
+          mode="outlined" 
+          onPress={handleSignOut}
+          style={styles.signOutButton}
+        >
+          Sign Out
+        </Button>
+        
+        {/* Bottom padding to ensure content is scrollable past the tab bar */}
+        <View style={{ height: 70 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -366,123 +412,123 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  keyboardAvoidView: {
-    flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   container: {
-    flex: 1, 
+    flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 30,
+    padding: 16,
+    paddingBottom: 100, // Extra padding to ensure content is accessible with the tab bar
   },
   centeredContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileHeader: {
+  welcomeSection: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 20,
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  profileAvatar: {
-    backgroundColor: '#E53935',
-    marginRight: 20,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  profileEmail: {
-    fontSize: 14,
+  welcomeText: {
+    fontSize: 16,
     color: '#666',
-    marginBottom: 12,
   },
-  editButton: {
-    borderColor: '#E53935',
-    alignSelf: 'flex-start',
+  userName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  avatar: {
+    backgroundColor: '#E53935',
   },
   card: {
-    marginVertical: 10,
+    marginBottom: 16,
     elevation: 2,
   },
   cardIcon: {
     backgroundColor: '#E53935',
   },
-  goalRow: {
+  summaryStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  goalLabel: {
-    fontSize: 16,
-    color: '#333',
-  },
-  goalValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#E53935',
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 4,
-  },
-  chip: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
-    fontSize: 14,
-  },
-  divider: {
-    marginVertical: 16,
-  },
-  buttonContainer: {
-    marginTop: 20,
     marginBottom: 20,
-  },
-  actionButton: {
-    backgroundColor: '#E53935',
-    marginVertical: 8,
-  },
-  signOutButton: {
-    borderColor: '#E53935',
-    marginVertical: 8,
-  },
-  reminderSwitch: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  statRowContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 10,
   },
   statItem: {
     alignItems: 'center',
-    paddingHorizontal: 12,
+    flex: 1,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#E53935',
+    color: '#333',
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
     marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: '#e0e0e0',
+  },
+  progressSection: {
+    marginBottom: 10,
+  },
+  progressBar: {
+    height: 10,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 5,
+    marginBottom: 5,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#E53935',
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#666',
+    alignSelf: 'center',
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  actionButton: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  actionIcon: {
+    backgroundColor: '#E53935',
+    marginBottom: 10,
+  },
+  actionText: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
+  },
+  reminderSetting: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  signOutButton: {
+    marginTop: 16,
+    marginBottom: 40, // Add extra space at the bottom
   },
 });

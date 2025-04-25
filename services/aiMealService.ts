@@ -142,6 +142,90 @@ export const saveMealToHistory = async (meal: MealSuggestion, date: string) => {
   }
 };
 
+export const trackMealIntake = async (meal: any, date: string) => {
+  try {
+    const intakeKey = 'mealIntakeHistory';
+    const existingIntake = await AsyncStorage.getItem(intakeKey);
+    const intakeHistory = existingIntake ? JSON.parse(existingIntake) : [];
+    
+    // Add the meal to intake history with timestamp
+    intakeHistory.unshift({
+      ...meal,
+      date,
+      consumedAt: new Date().toISOString(),
+      id: Date.now().toString(),
+      type: 'meal'
+    });
+    
+    await AsyncStorage.setItem(intakeKey, JSON.stringify(intakeHistory));
+    
+    // Also update weekly nutrition data
+    await updateWeeklyNutritionData(meal);
+    
+    return true;
+  } catch (error) {
+    console.error('Error tracking meal intake:', error);
+    throw error;
+  }
+};
+
+// Update the weekly nutrition data based on consumed meals
+const updateWeeklyNutritionData = async (meal: any) => {
+  try {
+    const weeklyDataKey = 'weeklyNutritionData';
+    const today = new Date().toISOString().split('T')[0];
+    const dayOfWeek = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    // Get existing weekly data or initialize a new one
+    const existingData = await AsyncStorage.getItem(weeklyDataKey);
+    let weeklyData = existingData ? JSON.parse(existingData) : {
+      labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+      data: [0, 0, 0, 0, 0, 0, 0],
+      lastUpdated: today
+    };
+    
+    // Check if we need to reset the weekly data (if we're in a new week)
+    const lastUpdated = new Date(weeklyData.lastUpdated);
+    const currentDate = new Date(today);
+    const daysSinceLastUpdate = Math.floor((currentDate.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysSinceLastUpdate > 7) {
+      // Reset the weekly data if more than a week has passed
+      weeklyData.data = [0, 0, 0, 0, 0, 0, 0];
+    }
+    
+    // Update the calorie count for today
+    weeklyData.data[dayOfWeek] += meal.calories || 0;
+    weeklyData.lastUpdated = today;
+    
+    await AsyncStorage.setItem(weeklyDataKey, JSON.stringify(weeklyData));
+  } catch (error) {
+    console.error('Error updating weekly nutrition data:', error);
+  }
+};
+
+// Get the weekly nutrition data for the dashboard
+export const getWeeklyNutritionData = async () => {
+  try {
+    const weeklyDataKey = 'weeklyNutritionData';
+    const existingData = await AsyncStorage.getItem(weeklyDataKey);
+    
+    if (!existingData) {
+      // Return default structure if no data exists
+      return {
+        labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        data: [0, 0, 0, 0, 0, 0, 0],
+        lastUpdated: new Date().toISOString().split('T')[0]
+      };
+    }
+    
+    return JSON.parse(existingData);
+  } catch (error) {
+    console.error('Error getting weekly nutrition data:', error);
+    throw error;
+  }
+};
+
 export const addMealToPlan = async (meal: MealSuggestion, date: string) => {
   try {
     const planKey = `mealPlan_${date}`;
